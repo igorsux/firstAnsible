@@ -1,0 +1,7 @@
+[local]
+localhost ansible_connection=local
+[local_ssh]
+localssh ansible_host=0.0.0.0
+[local_ssh:vars]
+ansible_user=root
+ansible_ssh_pass=anisble

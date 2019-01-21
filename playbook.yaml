@@ -1,0 +1,56 @@
+---
+- name:
+  hosts: all
+  gather_facts: false
+  tasks:
+    - block: # create ssh container
+        - name: copy Dockerfile to tmp
+          synchronize: src=sshContainer dest=/tmp
+
+        - name: build image
+          docker_image: >
+                  name=ssh-docker
+                  tag=test
+                  path=/tmp/sshContainer
+                  state=present
+
+        - name: run the site in docker container
+          docker_container: 
+                name: sshDocker
+                image: "ssh-docker:test"
+                ports:
+                        - "80:80"
+                        - "22:22"
+                log_driver: syslog
+                log_options:
+                        syslog-facility: daemon
+                        tag: sshAnsible
+      when: "'local' in group_names"
+    - block: # start server with php
+        - name: create site directory
+          file:
+             dest: /var/www/site
+             state: directory
+
+        - name: copy index.php
+          copy:
+              src: site/index.php
+              dest: /var/www/site/index.php
+
+        - name: install ngixn
+          apt: name=nginx state=latest
+
+        - name: copy nginx.conf
+          copy:
+            src: site/nginx.conf
+            dest: /etc/nginx/nginx.conf
+
+        - name: install php7
+          apt: name=php7.0-fpm state=latest
+
+        - name: start nginx
+          shell: service nginx start
+
+        - name: start php
+          shell: service php7.0-fpm start
+      when: "'local_ssh' in group_names"
